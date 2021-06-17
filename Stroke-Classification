@@ -1,0 +1,123 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import f1_score, precision_score, recall_score,precision_recall_fscore_support,classification_report
+import matplotlib.pyplot as plot
+
+# For retrieving input and target columns,spliting to train-test and scaling the df
+def preprocess_split(x,y):
+    y = LabelEncoder().fit_transform(y)
+    #Spliting df to train and test sets
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.25)
+    # Feature Scaling to X_train and X_test to classify better.
+    # x_train = StandardScaler().fit_transform(x_train) #TO CHECK
+    # x_test = StandardScaler().fit_transform(x_test) #TO CHECK
+    return x_train, x_test, y_train, y_test
+
+# Evaluating Metrics for 
+def count_metrics(x,y):
+    x_train, x_test, y_train, y_test=preprocess_split(x,y)
+    clf = RandomForestClassifier()
+    clf.fit(x_train, y_train )
+    y_pred = clf.predict(x_test)
+    f1 = f1_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    print("Precision Score : ",precision)
+    print("Recall Score : ",recall)
+    print("f1 Score : ",f1)
+    print(precision_recall_fscore_support(y_test, y_pred))
+    return f1,precision,recall
+    
+# Replacing the 33% of pH column of the df set with Nan
+def diminish_set(full_df):
+    stroke = full_df['stroke'].values
+    rowIndices = np.random.choice(len(full_df['stroke'].values),int(len(full_df['stroke'].values)/3),replace=False)
+    for i in rowIndices:
+        stroke[i]=np.nan
+    full_df.update(stroke)
+    return full_df
+
+# Handle Missong Values based on the chosen parameter
+def handle_mv(method,df):
+    # Delete all columns with mv
+    if method == 'delete':
+        # diminished_set = diminish_set(df)
+        my_set = Delete_Column(df)
+    # Fill with Mean
+    elif method == 'mean':
+        diminished_set = diminish_set(df)
+        my_set = Fill_with_Mean(diminished_set)
+    # Fill with Linear Regression
+    elif method == 'lregression': 
+        diminished_set = diminish_set(df)
+        my_set=Linear_Regression(diminished_set)
+    # Fill with KNN
+    elif method == 'knn': 
+        col_names=df.columns
+        prev_centroids,prev_labels = k_means_to_full_set(df)
+        diminished_set = diminish_set(df)
+        my_set=k_means_missing(diminished_set,6, prev_centroids,prev_labels,col_names)
+    # Fill with Linear Regression and KNN
+    elif method == 'lregression-knn': 
+        col_names=df.columns
+        prev_centroids,prev_labels = k_means_to_full_set(df)
+        diminished_set = diminish_set(df)
+        my_set = Fill_with_Mean(diminished_set) 
+    return my_set
+    
+#####  Functions to handle missing values  #####
+def Delete_Column(df):
+    df = df.drop(columns="smoking_status")
+    df = df.dropna(axis=1)
+    return df
+
+def Fill_with_Mean(df):
+    #FILL NAN WITH MEAN OF pH COLUMN
+    #df.fillna(df.mean(), inplace=True)
+    av = df['pH'].mean()
+    df['pH'].values[np.isnan(df['pH'].values)]= av
+    return df
+
+# Fill numerical mv with Linear Regression
+def Linear_Regression(df):
+    km=KMeans(n_clusters=6).fit(df)
+    centroids = km.cluster_centers_
+    labels = km.labels_
+    return centroids,labels
+
+# Fill categoricla mv with KNN
+def knn(diminished_set,n_clusters, prev_centroids,prev_labels,col_names):
+    return new_df
+
+def label_encoding(data):
+    for i in range(0,len(data.columns)-1):
+        if isinstance(data[data.columns[i]][0], str): # values of attribute are categorical
+            data[data.columns[i]] = LabelEncoder().fit_transform(data[data.columns[i]])
+    return data
+
+def main():    
+    df = pd.read_csv('healthcare-dataset-stroke-data.csv')
+    # Checks ID column to see if we have duplicate entries and deletes (Not necessary)
+    df[df.duplicated(['id'])].drop_duplicates(inplace=True, keep='first')
+    # Delete id column
+    df = df.drop(columns='id')
+    # Create new set depending on the method of handling the missing values
+    data = handle_mv('delete',df)
+    # Label Encoding
+    coded_data = label_encoding(data)
+    coded_data = coded_data.drop(columns = 'stroke')
+    # Normalise Data
+    # ready_data = StandardScaler().fit_transform(coded_data)
+    # Train RandomForest
+    # clf = RandomForestClassifier()
+    # clf.fit(ready_data, df['stroke'])
+    # count f1,precision,recall and print them inside count_metrics function
+    f1,precision,recall = count_metrics(coded_data, df['stroke'])
+
+    print("For Debugging")
+
+if __name__ == "__main__":
+    main()
