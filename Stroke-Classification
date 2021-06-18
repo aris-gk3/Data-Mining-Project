@@ -97,8 +97,6 @@ def label_encoding(data):
     for i in range(0,len(data.columns)):
         if isinstance(data[data.columns[i]][0], str): # values of attribute are categorical
             data[data.columns[i]] = LabelEncoder().fit_transform(data[data.columns[i]])
-            # column_list = [list(data[data.columns[i]])]
-            # data[data.columns[i]] = OneHotEncoder(drop='first').fit_transform(column_list)
     # enc = OneHotEncoder()
     # enc.fit(data)
     # onehotlabels = enc.transform(data).toarray()
@@ -115,20 +113,17 @@ def main():
     data = handle_mv('lregression',df)
     # Label Encoding
     coded_data = label_encoding(data)
+    y = coded_data['stroke'].to_numpy()
     coded_data = coded_data.drop(columns = 'stroke')
     x = np.asarray(coded_data)
-    y = df['stroke'].to_numpy() # 
     clf = RandomForestClassifier(criterion= 'entropy',bootstrap=True,oob_score=True ,class_weight='balanced')
-    kf = KFold( 5, shuffle=True) # Use for 5-Fold classification
     f1_list = list()
     precision_list = list()
     recall_list = list()
     bal_accuracy_list = list()
-    kf = KFold(n_splits=5, shuffle=True)#, random_state=42)  # Use for 5-Fold cross validation
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)  # Use for 5-Fold cross validation
     for train_index, test_index in kf.split(x):
-        x_train, x_test, y_train, y_test = x[train_index], x[test_index], y[train_index], y[test_index]
-        # x_train = StandardScaler().fit_transform(x_train)
-        # x_test = StandardScaler().fit_transform(x_test)        
+        x_train, x_test, y_train, y_test = x[train_index], x[test_index], y[train_index], y[test_index]     
         clf.fit(x_train, y_train )
         y_pred = clf.predict(x_test)
         f1,precision,recall,bal_accuracy = count_metrics(y_test, y_pred)
