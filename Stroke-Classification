@@ -96,11 +96,11 @@ def knn(df):
 def label_encoding(data):
     for i in range(0,len(data.columns)):
         if isinstance(data[data.columns[i]][0], str): # values of attribute are categorical
-            data[data.columns[i]] = LabelEncoder().fit_transform(data[data.columns[i]])
-    # enc = OneHotEncoder()
-    # enc.fit(data)
-    # onehotlabels = enc.transform(data).toarray()
-    # onehotlabels.shape
+            # data[data.columns[i]] = LabelEncoder().fit_transform(data[data.columns[i]])
+            enc = OneHotEncoder()
+            arr = np.asarray(data[data.columns[i]]).reshape(-1,1)
+            enc.fit(arr)
+            data[data.columns[i]] = enc.transform(arr).toarray()
     return data
 
 def main():    
@@ -116,7 +116,7 @@ def main():
     y = coded_data['stroke'].to_numpy()
     coded_data = coded_data.drop(columns = 'stroke')
     x = np.asarray(coded_data)
-    clf = RandomForestClassifier(criterion= 'entropy',bootstrap=True,oob_score=True ,class_weight='balanced')
+    clf = RandomForestClassifier(criterion= 'gini',bootstrap=True,oob_score=True ,class_weight='balanced')
     f1_list = list()
     precision_list = list()
     recall_list = list()
